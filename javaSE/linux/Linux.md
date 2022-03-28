@@ -367,7 +367,7 @@ vim +/java xiaoming.java
 - Windows与linux如何传递数据？--- xftp
 
   ~~~java
-除了上述比较成熟的方式的，我们还可以通过lrzsz工具命令来传输文件
+  除了上述比较成熟的方式的，我们还可以通过lrzsz工具命令来传输文件
       需要手动安装，安装命令：
           yum install lrzsz -y
   ~~~
@@ -1033,6 +1033,53 @@ sed -i 's#目标内容#替换内容#g'
 ![](Linux.assets/Snipaste_2021-01-06_17-29-07.png)
 
 ![](Linux.assets/Snipaste_2021-01-06_17-32-18.png)
+
+### 4.22 防火墙命令
+
+Centos 7 firewall 命令：
+查看已经开放的端口：
+
+~~~shell
+firewall-cmd --list-ports
+~~~
+
+开启端口
+
+~~~shell
+firewall-cmd --zone=public --add-port=80/tcp --permanent
+~~~
+
+命令含义：
+
+–zone #作用域
+
+–add-port=80/tcp #添加端口，格式为：端口/通讯协议
+
+–permanent #永久生效，没有此参数重启后失效
+
+重启防火墙
+
+~~~shell
+firewall-cmd --reload #重启firewall
+systemctl stop firewalld.service #停止firewall
+systemctl disable firewalld.service #禁止firewall开机启动
+~~~
+
+~~~shell
+firewall-cmd --state                          ##查看防火墙状态，是否是running
+firewall-cmd --reload                          ##重新载入配置，比如添加规则之后，需要执行此命令
+firewall-cmd --get-zones                      ##列出支持的zone
+firewall-cmd --get-services                    ##列出支持的服务，在列表中的服务是放行的
+firewall-cmd --query-service ftp              ##查看ftp服务是否支持，返回yes或者no
+firewall-cmd --add-service=ftp                ##临时开放ftp服务
+firewall-cmd --add-service=ftp --permanent    ##永久开放ftp服务
+firewall-cmd --remove-service=ftp --permanent  ##永久移除ftp服务
+firewall-cmd --add-port=80/tcp --permanent    ##永久添加80端口
+iptables -L -n                                ##查看规则，这个命令是和iptables的相同的
+man firewall-cmd                              ##查看帮助
+
+更多命令，使用 firewall-cmd --help 查看帮助文件
+~~~
 
 ## 5.linux安装软件管理
 
