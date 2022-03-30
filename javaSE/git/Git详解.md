@@ -1049,7 +1049,50 @@ To https://gitee.com/pure_love_flying/git-warehouse-03.git
  * [new tag]         v_1.1 -> v_1.1
 ~~~
 
-## 9.IDEA下git的操作
+## 9.git merge && git rebase
+
+不管是merge还是rebase都可以进行分支合并。
+
+git rebase：**变基**
+git merge：**合并**
+
+### 9.1 合并上的区别
+
+>1.这两个命令都可以进行分支的合并
+>2.git merge合并后保留两个分支的记录，同时在merge操作之后，生成一个新的版本以及版本号
+>3.git rebase合并后会展示成一个分支的记录，另一个分支的提交实际上生成了一个副本，并到当前分支中
+
+![](Git详解.assets/Snipaste_2022-03-30_14-34-23-16486229808141.png)
+
+![](Git详解.assets/Snipaste_2022-03-30_14-36-22-16486229808152.png)
+
+![](Git详解.assets/Snipaste_2022-03-30_14-38-51-16486229808153.png)
+
+### 9.2 解决冲突上的区别
+
+~~~text
+dev分支：
+C1     C2     C3(在此基础上修改了test1文件)   C4(在此基础上修改了test2文件)
+
+test分支：
+C1     C2     C5(在此基础上修改了test1文件)   C6(在此基础上修改了test2文件)
+假如dev分支第一次提交修改了test1.第二次提交修改了test2
+同时test分支第一次提交修改了test1.第二次提交修改了test2
+此时他们都前进了两个版本，
+~~~
+
+我们想**dev合并到test，会出现冲突**
+
+> 如果我们通过merge合并dev到test：merge命令会一次性展示两次提交两个版本的冲突文件
+> 此时需要我们解决test1，test2的冲突，再add 再commit
+
+>如果我们通过rebase合并dev到test：会先提示test1文件冲突，解决完test1的冲突
+>我们也需要进行add 操纵，操作完再执行**git rebase --continue**命令
+>此时才会出现test2冲突的提示信息，我们需要继续解决冲突，解决完test2的冲突
+>我们需要将进行add 操纵，操作完执行git rebase --continue命令.此时提示没有冲突啦
+
+- git merge在解决完冲突之后，需要手动通过git add ,git commit生成**一次**提交。git merge一次性解决完之前多次提交，多个版本的的提交记录中所有的冲突。
+- git rebase一次性只会解决一次提交，一个版本上的冲突，如果多次提交，多个版本都有冲突，需要执行多次rebase操作。
 
 ## 命令总结
 
