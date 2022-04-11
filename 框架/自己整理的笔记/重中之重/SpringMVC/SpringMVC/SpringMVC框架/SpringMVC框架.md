@@ -3966,11 +3966,9 @@ public class WebConfig  implements WebMvcConfigurer {
 
 作用：==统一处理请求和响应，整个流程控制的中心，由它调用其它组件处理用户的请求==
 
-
-
 - HandlerMapping：**处理器映射器**，不需要工程师开发，由框架提供
 
-作用：==根据请求的url、method等信息查找Handler，即控制器方法==，**将请求和控制器方法进行映射**，处理器映射器来找方法
+作用：==根据请求的url、method等信息查找Handler，也就是我们编写的Controller，即控制器方法==，**将请求和控制器方法进行映射**，**处理器映射器来找方法**
 
 - Handler：**处理器**，需要工程师开发，指的就是我们写的Controller,控制器！
 
@@ -3978,9 +3976,7 @@ public class WebConfig  implements WebMvcConfigurer {
 
 - HandlerAdapter：**处理器适配器**，不需要工程师开发，由框架提供
 
-作用：==通过HandlerAdapter对处理器（控制器方法）进行执行==，处理器适配器来执行方法
-
-
+作用：==通过HandlerAdapter对处理器（控制器方法）进行执行==，HandlerMapping找到了控制器方法以后，由**处理器适配器来执行方法**
 
 - ViewResolver：**视图解析器**，不需要工程师开发，由框架提供
 
@@ -3988,13 +3984,62 @@ public class WebConfig  implements WebMvcConfigurer {
 
 - View：**视图**
 
-作用：==将模型数据通过页面展示给用户==，为用户展示模型数据
+作用：==将模型数据通过页面展示给用户==，为用户展示模型数据，实际就是我们编写的页面
 
 ### 14.2 DispatcherServlet初始化过程⭐
 
-DispatcherServlet 本质上是一个 Servlet，所以天然的遵循 Servlet 的生命周期。所以宏观上是 Servlet 生命周期来进行调度。
+DispatcherServlet 本质上是一个 Servlet，所以天然的遵循 Servlet 的生命周期。所以宏观上是 Servlet 生命周期来进行调度。我们考虑它是如何初始化的！
+
+>```
+>public class DispatcherServlet extends FrameworkServlet 
+>DispatcherServlet继承了FrameworkServlet
+>```
+
+![](SpringMVC框架.assets/Snipaste_2022-04-09_11-04-57.png)
 
 ![](SpringMVC框架.assets/img005.png)
+
+![](SpringMVC框架.assets/Snipaste_2022-04-09_11-12-42.png)
+
+~~~java
+// HttpServletBean的方法initServletBean：
+protected void initServletBean() throws ServletException {
+
+}
+~~~
+
+~~~java
+// HttpServletBean的子类FrameworkServlet的initServletBean方法
+protected final void initServletBean() throws ServletException {
+        this.getServletContext().log("Initializing Spring " + this.getClass().getSimpleName() + " '" + this.getServletName() + "'");
+        if (this.logger.isInfoEnabled()) {
+            this.logger.info("Initializing Servlet '" + this.getServletName() + "'");
+        }
+
+        long startTime = System.currentTimeMillis();
+
+        try {
+            // 初始化的方法！
+            this.webApplicationContext = this.initWebApplicationContext();
+            this.initFrameworkServlet();
+        } catch (RuntimeException | ServletException var4) {
+            this.logger.error("Context initialization failed", var4);
+            throw var4;
+        }
+
+        if (this.logger.isDebugEnabled()) {
+            String value = this.enableLoggingRequestDetails ? "shown which may lead to unsafe logging of potentially sensitive data" : "masked to prevent unsafe logging of potentially sensitive data";
+            this.logger.debug("enableLoggingRequestDetails='" + this.enableLoggingRequestDetails + "': request parameters and headers will be " + value);
+        }
+
+        if (this.logger.isInfoEnabled()) {
+            this.logger.info("Completed initialization in " + (System.currentTimeMillis() - startTime) + " ms");
+        }
+
+    }
+~~~
+
+![](SpringMVC框架.assets/Snipaste_2022-04-09_11-18-14.png)
 
 ##### a>初始化WebApplicationContext
 
@@ -4023,6 +4068,7 @@ protected WebApplicationContext initWebApplicationContext() {
             }
         }
     }
+    
     if (wac == null) {
         // No context instance was injected at construction time -> see if one
         // has been registered in the servlet context. If one exists, it is assumed
@@ -4030,9 +4076,11 @@ protected WebApplicationContext initWebApplicationContext() {
         // user has performed any initialization such as setting the context id
         wac = findWebApplicationContext();
     }
+    
+    // wac肯定是null，然后这时候我们追踪到createWebApplicationContext()方法中
     if (wac == null) {
         // No context instance is defined for this servlet -> create a local one
-        // 创建WebApplicationContext
+        // 1.创建WebApplicationContext
         wac = createWebApplicationContext(rootContext);
     }
 
@@ -4041,14 +4089,14 @@ protected WebApplicationContext initWebApplicationContext() {
         // support or the context injected at construction time had already been
         // refreshed -> trigger initial onRefresh manually here.
         synchronized (this.onRefreshMonitor) {
-            // 刷新WebApplicationContext
+            // 2.刷新WebApplicationContext
             onRefresh(wac);
         }
     }
 
     if (this.publishContext) {
         // Publish the context as a servlet context attribute.
-        // 将IOC容器在应用域共享
+        // 3.将IOC容器在应用域共享
         String attrName = getServletContextAttributeName();
         getServletContext().setAttribute(attrName, wac);
     }
@@ -4057,7 +4105,7 @@ protected WebApplicationContext initWebApplicationContext() {
 }
 ```
 
-##### b>创建WebApplicationContext
+##### b>创建WebApplicationContext，对应a中的  wac = createWebApplicationContext(rootContext)操作
 
 所在类：org.springframework.web.servlet.FrameworkServlet
 
@@ -4075,7 +4123,7 @@ protected WebApplicationContext createWebApplicationContext(@Nullable Applicatio
         (ConfigurableWebApplicationContext) BeanUtils.instantiateClass(contextClass);
 
     wac.setEnvironment(getEnvironment());
-    // 设置父容器
+    // 设置父容器，SpringMVC的容器是子容器，Spring的容器是父容器
     wac.setParent(parent);
     String configLocation = getContextConfigLocation();
     if (configLocation != null) {
@@ -4091,6 +4139,10 @@ protected WebApplicationContext createWebApplicationContext(@Nullable Applicatio
 
 FrameworkServlet创建WebApplicationContext后，刷新容器，调用onRefresh(wac)，==此方法在DispatcherServlet中进行了重写，调用了initStrategies(context)方法，初始化策略，即初始化DispatcherServlet的各个组件。==
 
+![](SpringMVC框架.assets/Snipaste_2022-04-09_11-41-14.png)
+
+![](SpringMVC框架.assets/Snipaste_2022-04-09_11-42-30.png)
+
 所在类：org.springframework.web.servlet.DispatcherServlet
 
 ```java
@@ -4098,11 +4150,11 @@ protected void initStrategies(ApplicationContext context) {
    initMultipartResolver(context);
    initLocaleResolver(context);
    initThemeResolver(context);
-   initHandlerMappings(context);
-   initHandlerAdapters(context);
-   initHandlerExceptionResolvers(context);
+   initHandlerMappings(context);// 初始化处理器映射器，这个组件找方法
+   initHandlerAdapters(context);// 初始化处理器适配器，这个来执行控制器方法
+   initHandlerExceptionResolvers(context);// 初始化异常处理器
    initRequestToViewNameTranslator(context);
-   initViewResolvers(context);
+   initViewResolvers(context);// 初始化视图解析器
    initFlashMapManager(context);
 }
 ```
@@ -4113,11 +4165,31 @@ protected void initStrategies(ApplicationContext context) {
 
 ##### a>processRequest()
 
-FrameworkServlet重写HttpServlet中的service()和doXxx()，这些方法中调用了processRequest(request, response)
+处理请求的过程实际上还是原生Servlet的Service方法一步步调用过来，
 
-所在类：org.springframework.web.servlet.FrameworkServlet
+FrameworkServlet重写HttpServlet中的service()和doXxx()，但是实际上这些方法中最终都是调用了processRequest(request, response)方法:
+
+![](SpringMVC框架.assets/Snipaste_2022-04-09_17-02-14.png)
+
+~~~java
+// FrameworkServlet中的serice实现：
+protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        HttpMethod httpMethod = HttpMethod.resolve(request.getMethod());
+        if (httpMethod != HttpMethod.PATCH && httpMethod != null) {
+            super.service(request, response);// 这个是调用父类的service，最终还是调用到本类中的各种do***()方法，而do***方法最终稿还是调用下面的 this.processRequest(request, response);
+        } else {
+            this.processRequest(request, response);// 这个是调用本类的processRequest
+        }
+
+    }
+~~~
+
+![](SpringMVC框架.assets/Snipaste_2022-04-09_17-13-51.png)
+
+故我们看processRequest方法即可，所在类：org.springframework.web.servlet.FrameworkServlet
 
 ```java
+// FrameworkServlet中的processRequest实现：
 protected final void processRequest(HttpServletRequest request, HttpServletResponse response)
     throws ServletException, IOException {
 
@@ -4158,6 +4230,8 @@ protected final void processRequest(HttpServletRequest request, HttpServletRespo
     }
 }
 ```
+
+![](SpringMVC框架.assets/Snipaste_2022-04-09_17-19-58.png)
 
 ##### b>doService()
 
@@ -4222,12 +4296,14 @@ protected void doService(HttpServletRequest request, HttpServletResponse respons
 
 ##### c>doDispatch()
 
+![](SpringMVC框架.assets/Snipaste_2022-04-09_17-51-24.png)
+
 所在类：org.springframework.web.servlet.DispatcherServlet
 
 ```java
 protected void doDispatch(HttpServletRequest request, HttpServletResponse response) throws Exception {
     HttpServletRequest processedRequest = request;
-    HandlerExecutionChain mappedHandler = null;
+    HandlerExecutionChain mappedHandler = null;//  执行量
     boolean multipartRequestParsed = false;
 
     WebAsyncManager asyncManager = WebAsyncUtils.getAsyncManager(request);
@@ -4241,13 +4317,15 @@ protected void doDispatch(HttpServletRequest request, HttpServletResponse respon
             multipartRequestParsed = (processedRequest != request);
 
             // Determine handler for the current request.
+            
             /*
-            	mappedHandler：调用链
+            	mappedHandler：调用链，是一个执行量，很重要
                 包含handler、interceptorList、interceptorIndex
             	handler：浏览器发送的请求所匹配的控制器方法
             	interceptorList：处理控制器方法的所有拦截器集合
             	interceptorIndex：拦截器索引，控制拦截器afterCompletion()的执行
             */
+            
             mappedHandler = getHandler(processedRequest);
             if (mappedHandler == null) {
                 noHandlerFound(processedRequest, response);
@@ -4293,7 +4371,7 @@ protected void doDispatch(HttpServletRequest request, HttpServletResponse respon
             // making them available for @ExceptionHandler methods and other scenarios.
             dispatchException = new NestedServletException("Handler dispatch failed", err);
         }
-        // 后续处理：处理模型数据和渲染视图
+        // 后续处理：处理模型数据和渲染视图,其中的参数mv中封装有视图路径和域对象中的参数信息！
         processDispatchResult(processedRequest, response, mappedHandler, mv, dispatchException);
     }
     catch (Exception ex) {
